@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcolo profondità Z – Correzioni primo pezzo</title>
+<style>
+:root{--blue:#0b5cab;--green:#0d7a3f;--red:#b3261e;--bg:#f4f6f8;--card:#fff;--line:#d7dde3;--text:#17212b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:17px;line-height:1.45}
+header{background:var(--blue);color:#fff;padding:18px 16px}
+header h1{margin:0;font-size:1.25rem}
+header p{margin:6px 0 0;opacity:.9;font-size:.9rem}
+main{padding:14px;max-width:860px;margin:0 auto}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{font-size:1.05rem;margin:0 0 12px}
+label{display:block;font-weight:600;margin-bottom:6px}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice button{min-height:56px;border:2px solid var(--line);background:#fff;border-radius:12px;font-size:1rem;font-weight:700;color:var(--text);cursor:pointer}
+.choice button[aria-pressed="true"]{border-color:var(--blue);background:#e8f1fb;color:var(--blue)}
+.choice.three{grid-template-columns:1fr}
+@media(min-width:640px){.choice.three{grid-template-columns:repeat(3,1fr)}}
+.params{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.param{background:#eef3f7;border:1px dashed #9fb3c4;border-radius:10px;padding:10px}
+.param strong{display:block;font-size:.85rem;color:#41525f}
+.param span{font-size:1.25rem;font-weight:800}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:middle}
+th{font-size:.82rem;color:#41525f;background:#f8fafb}
+input[type="number"],input[type="text"]{width:100%;min-height:48px;font-size:1.05rem;padding:8px;border:2px solid var(--line);border-radius:10px;background:#fff}
+input:focus{outline:3px solid #b8d4f2;border-color:var(--blue)}
+.rowbad input{border-color:var(--red);background:#fff4f3}
+.iconbtn{min-width:48px;min-height:48px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:1.1rem;cursor:pointer}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+button.primary{background:var(--green);color:#fff;border:none;border-radius:12px;padding:16px 18px;font-size:1.05rem;font-weight:800;min-height:56px;cursor:pointer;width:100%}
+button.secondary{background:#fff;color:var(--blue);border:2px solid var(--blue);border-radius:12px;padding:12px 14px;font-weight:700;min-height:50px;cursor:pointer}
+button.danger{background:#fff;color:var(--red);border:2px solid var(--red);border-radius:12px;padding:12px 14px;font-weight:700;min-height:50px;cursor:pointer}
+.msg{display:none;margin:10px 0;padding:12px;border-radius:10px;font-weight:600}
+.msg.error{display:block;background:#fdecea;color:var(--red);border:1px solid #f3b6b0}
+.msg.ok{display:block;background:#e8f6ee;color:var(--green);border:1px solid #a9d9bd}
+.result-head{display:grid;gap:6px;background:#f8fafb;border:1px solid var(--line);border-radius:10px;padding:12px}
+.zbig{font-size:1.35rem;font-weight:900;color:var(--blue)}
+.note{font-size:.88rem;background:#fff8e6;border:1px solid #e6cf86;color:#6a5200;padding:10px;border-radius:10px}
+.history-item{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:#fff}
+.history-item small{color:#41525f}
+.muted{color:#41525f;font-size:.9rem}
+.hidden{display:none}
+@media print{
+ body{background:#fff;font-size:12px}
+ header{background:#fff;color:#000;border-bottom:2px solid #000}
+ main{max-width:none;padding:0}
+ .no-print{display:none!important}
+ section{border:none;padding:0 0 10px;margin:0 0 10px;break-inside:avoid}
+ table{font-size:11px}
+ tr{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>CALCOLO PROFONDITÀ Z</h1>
+ <p>Correzioni primo pezzo • Versione 1.0</p>
+</header>
+<main>
+ <section>
+  <h2>1. Seleziona il profilo</h2>
+  <div class="choice" id="profileChoices">
+   <button type="button" data-profile="GTC-01" aria-pressed="false">GTC-01</button>
+   <button type="button" data-profile="GTC-05" aria-pressed="false">GTC-05</button>
+  </div>
+ </section>
+
+ <section>
+  <h2>2. Seleziona la lavorazione</h2>
+  <div class="choice three" id="workChoices">
+   <button type="button" data-work="Lamatura punta gradino" aria-pressed="false">Lamatura punta gradino</button>
+   <button type="button" data-work="Lamatura fresa" aria-pressed="false">Lamatura fresa</button>
+   <button type="button" data-work="Svasatura" aria-pressed="false">Svasatura</button>
+  </div>
+ </section>
+
+ <section>
+  <h2>3. Parametri automatici</h2>
+  <div class="params">
+   <div class="param"><strong>Z iniziale</strong><span id="zStart">—</span></div>
+   <div class="param"><strong>Profondità nominale</strong><span id="nomDepth">—</span></div>
+  </div>
+  <p class="muted">I parametri sono preimpostati e non modificabili durante l’uso.</p>
+ </section>
+
+ <section>
+  <h2>4. Quote rilevate</h2>
+  <div id="quoteMsg" class="msg" role="alert"></div>
+  <table>
+   <thead><tr><th style="width:52px">N.</th><th>Quota rilevata (mm)</th><th class="no-print" style="width:60px">Elimina</th></tr></thead>
+   <tbody id="quoteRows"></tbody>
+  </table>
+  <div class="actions no-print">
+   <button type="button" class="secondary" id="addQuote">+ Aggiungi quota</button>
+   <button type="button" class="secondary" id="voiceBtn" aria-label="Dettare quota con il microfono">🎤 Dettatura</button>
+   <button type="button" class="danger" id="clearQuotes">Rimuovi tutte</button>
+  </div>
+  <p class="muted no-print">Puoi inserire la virgola o il punto come separatore decimale. La dettatura richiede un browser compatibile e, in genere, una connessione HTTPS.</p>
+ </section>
+
+ <section class="no-print">
+  <button type="button" class="primary" id="generateBtn">GENERA CORREZIONI PRIMO PEZZO</button>
+ </section>
+
+ <section id="resultSection" class="hidden">
+  <h2>Correzioni primo pezzo</h2>
+  <div id="resultMsg" class="msg" role="status"></div>
+  <div class="result-head" id="resultHead"></div>
+  <table>
+   <thead><tr><th>N.</th><th>Quota rilevata</th><th>Operazione</th><th>Scostamento</th><th>Z iniziale</th><th>Z corretta</th></tr></thead>
+   <tbody id="resultRows"></tbody>
+  </table>
+  <p class="note">Verificare i valori calcolati e le condizioni di lavorazione prima di applicare qualsiasi correzione al programma macchina.</p>
+  <div class="actions no-print">
+   <button type="button" class="secondary" id="saveBtn">Salva nello storico</button>
+   <button type="button" class="secondary" id="csvBtn">ESPORTA CSV</button>
+   <button type="button" class="secondary" id="printBtn">STAMPA / SALVA PDF</button>
+   <button type="button" class="secondary" id="newBtn">NUOVA COMPILAZIONE</button>
+  </div>
+ </section>
+
+ <section id="historySection" class="no-print">
+  <h2>Storico locale</h2>
+  <p class="muted">Lo storico resta solo su questo dispositivo e in questo browser. Non è sincronizzato, non è un archivio centrale e può essere cancellato eliminando i dati del browser.</p>
+  <div id="historyMsg" class="msg" role="status"></div>
+  <div id="historyList"></div>
+  <button type="button" class="secondary" id="refreshHistory">Aggiorna storico</button>
+ </section>
+</main>
+
+<script>
+"use strict";
+const PARAMS = {
+ "GTC-01|Lamatura punta gradino": {z:19.00,p:5.40},
+ "GTC-05|Lamatura punta gradino": {z:19.00,p:6.40},
+ "GTC-01|Lamatura fresa": {z:27.00,p:5.40},
+ "GTC-05|Lamatura fresa": {z:28.00,p:6.40},
+ "GTC-01|Svasatura": {z:26.50,p:7.70},
+ "GTC-05|Svasatura": {z:27.00,p:7.70}
+};
+const DRAFT_KEY="zcorr_draft_v1", HIST_KEY="zcorr_history_v1";
+let draft={profile:"",work:"",quotes:[""]};
+let lastResult=null;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const it2=n=>Number(n).toFixed(2).replace(".",",");
+const parseNum=v=>{if(typeof v!=="string")return NaN;const s=v.trim().replace(",",".");if(!/^-?\d+(\.\d+)?$/.test(s))return NaN;const n=Number(s);return Number.isFinite(n)?n:NaN;};
+const calc=(work,quoted,z,p)=>{const sc=work==="Svasatura"?quoted-p:p-quoted;return {sc,zc:z-sc};};
+
+function showMessage(el,text,type){el.textContent=text||"";el.className="msg "+(type||"");}
+
+function renderParams(){
+ const key=draft.profile+"|"+draft.work, p=PARAMS[key];
+ $("zStart").textContent=p?it2(p.z)+" mm":"—";
+ $("nomDepth").textContent=p?it2(p.p)+" mm":"—";
+}
+
+function renderQuotes(){
+ const tb=$("quoteRows");tb.innerHTML="";
+ draft.quotes.forEach((q,i)=>{
+  const tr=document.createElement("tr");
+  tr.innerHTML='<td>'+(i+1)+'</td><td><input type="text" inputmode="decimal" aria-label="Quota rilevata numero '+(i+1)+'" value="'+esc(q)+'" data-i="'+i+'"></td><td class="no-print"><button type="button" class="iconbtn" data-del="'+i+'" aria-label="Elimina riga '+(i+1)+'">🗑️</button></td>';
+  tb.appendChild(tr);
+ });
+ if(!draft.quotes.length){const tr=document.createElement("tr");tr.innerHTML='<td colspan="3" class="muted">Nessuna quota inserita. Premi “+ Aggiungi quota”.</td>';tb.appendChild(tr);}
+}
+
+function renderChoices(){
+ document.querySelectorAll("#profileChoices button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.profile===draft.profile)));
+ document.querySelectorAll("#workChoices button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.work===draft.work)));
+}
+
+function saveDraft(){
+ try{localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));}catch(e){console.warn(e);}
+}
+
+function loadDraft(){
+ try{const s=localStorage.getItem(DRAFT_KEY);if(s){const d=JSON.parse(s);if(d&&Array.isArray(d.quotes)){draft={profile:d.profile||"",work:d.work||"",quotes:d.quotes.map(String)};}}}catch(e){console.warn(e);}
+ if(!draft.quotes.length)draft.quotes=[""];
+}
+
+function getValidRows(){
+ const errors=[];
+ const rows=[];
+ draft.quotes.forEach((raw,i)=>{
+  if(raw.trim()===""){errors.push({i,msg:"La quota numero "+(i+1)+" è vuota: inserisci un valore oppure elimina la riga."});return;}
+  const n=parseNum(raw);
+  if(Number.isNaN(n)){errors.push({i,msg:"La quota numero "+(i+1)+" non è un numero valido: usa solo cifre, con virgola o punto decimale."});return;}
+  rows.push({n:i+1,input:raw.trim(),quoted:n});
+ });
+ return {rows,errors};
+}
+
+function generate(){
+ $("resultMsg").className="msg";
+ if(!draft.profile){showMessage($("resultMsg"),"Seleziona prima il profilo GTC-01 oppure GTC-05.","error");return;}
+ if(!draft.work){showMessage($("resultMsg"),"Seleziona prima il tipo di lavorazione.","error");return;}
+ const key=draft.profile+"|"+draft.work,p=PARAMS[key];
+ const {rows,errors}=getValidRows();
+ document.querySelectorAll("#quoteRows tr").forEach(tr=>tr.classList.remove("rowbad"));
+ if(!rows.length){
+  errors.forEach(e=>{const inp=document.querySelector('input[data-i="'+e.i+'"]');if(inp)inp.closest("tr").classList.add("rowbad");});
+  showMessage($("resultMsg"),errors[0]?errors[0].msg:"Inserisci almeno una quota rilevata valida.","error");return;
+ }
+ const results=rows.map(r=>{const c=calc(draft.work,r.quoted,p.z,p.p);return {...r,sc:c.sc,zc:c.zc};});
+ lastResult={id:makeId(),generatedAt:new Date().toISOString(),profile:draft.profile,work:draft.work,z:p.z,p:p.p,results};
+ renderResult();
+ showMessage($("resultMsg"),"Riepilogo generato. Controlla i valori prima dell’uso.","ok");
+ $("resultSection").classList.remove("hidden");
+ $("resultSection").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function renderResult(){
+ if(!lastResult)return;
+ const r=lastResult,d=new Date(r.generatedAt);
+ $("resultHead").innerHTML=
+  "<div><strong>ID compilazione:</strong> "+esc(r.id)+"</div>"+
+  "<div><strong>Data e ora:</strong> "+esc(d.toLocaleString("it-IT"))+"</div>"+
+  "<div><strong>Profilo:</strong> "+esc(r.profile)+"</div>"+
+  "<div><strong>Lavorazione:</strong> "+esc(r.work)+"</div>"+
+  "<div><strong>Z iniziale:</strong> "+it2(r.z)+" mm</div>"+
+  "<div><strong>Profondità nominale:</strong> "+it2(r.p)+" mm</div>"+
+  "<div><strong>Quote inserite:</strong> "+r.results.length+"</div>";
+ const op=r.work==="Svasatura"?"Quota − profondità":"Profondità − quota";
+ $("resultRows").innerHTML=r.results.map(x=>
+  "<tr><td>"+x.n+"</td><td>"+it2(x.quoted)+" mm</td><td>"+esc(op)+"</td><td>"+it2(x.sc)+" mm</td><td>Z"+it2(r.z)+"</td><td class='zbig'>Z"+it2(x.zc)+"</td></tr>").join("");
+}
+
+function makeId(){return "ZC-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase();}
+
+function saveHistory(){
+ if(!lastResult){showMessage($("historyMsg"),"Genera prima il riepilogo delle correzioni.","error");return;}
+ try{
+  const arr=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");
+  const existing=arr.findIndex(x=>x.id===lastResult.id);
+  const record=JSON.parse(JSON.stringify(lastResult));
+  if(existing>=0)arr[existing]=record;else arr.unshift(record);
+  localStorage.setItem(HIST_KEY,JSON.stringify(arr));
+  renderHistory();
+  showMessage($("historyMsg"),"Compilazione salvata nello storico locale.","ok");
+ }catch(e){showMessage($("historyMsg"),"Errore durante il salvataggio locale: controlla le impostazioni del browser o lo spazio disponibile.","error");}
+}
+
+function renderHistory(){
+ let arr=[];
+ try{arr=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");}catch(e){arr=[];}
+ const box=$("historyList");box.innerHTML="";
+ if(!arr.length){box.innerHTML='<p class="muted">Nessuna compilazione salvata.</p>';return;}
+ arr.forEach(x=>{
+  const div=document.createElement("div");div.className="history-item";
+  div.innerHTML="<strong>"+esc(x.id)+"</strong><br><small>"+esc(new Date(x.generatedAt).toLocaleString("it-IT"))+" • "+esc(x.profile)+" • "+esc(x.work)+" • "+x.results.length+" quote</small><div class='actions'><button class='secondary' data-open='"+esc(x.id)+"'>Apri</button><button class='danger' data-delete='"+esc(x.id)+"'>Elimina</button></div>";
+  box.appendChild(div);
+ });
+}
+
+function openHistory(id){
+ try{
+  const arr=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");
+  const x=arr.find(h=>h.id===id);if(!x)return;
+  lastResult=x;renderResult();
+  $("resultSection").classList.remove("hidden");
+  $("resultSection").scrollIntoView({behavior:"smooth",block:"start"});
+  showMessage($("historyMsg"),"Compilazione "+esc(id)+" aperta dallo storico.","ok");
+ }catch(e){showMessage($("historyMsg"),"Impossibile aprire la compilazione selezionata.","error");}
+}
+
+function deleteHistory(id){
+ if(!confirm("Eliminare definitivamente la compilazione "+id+" dallo storico di questo dispositivo?"))return;
+ try{
+  const arr=JSON.parse(localStorage.getItem(HIST_KEY)||"[]").filter(x=>x.id!==id);
+  localStorage.setItem(HIST_KEY,JSON.stringify(arr));renderHistory();
+  showMessage($("historyMsg"),"Compilazione eliminata.","ok");
+ }catch(e){showMessage($("historyMsg"),"Errore durante l’eliminazione dallo storico locale.","error");}
+}
+
+function exportCsv(){
+ if(!lastResult){showMessage($("resultMsg"),"Genera prima il riepilogo prima di esportare il CSV.","error");return;}
+ try{
+  const r=lastResult,sep=";";
+  const head=["Identificativo","Data e ora","Profilo","Lavorazione","Z iniziale","Profondita nominale","Numero progressivo","Quota rilevata","Scostamento","Z corretta"];
+  const lines=[head.join(sep)];
+  r.results.forEach(x=>{
+   lines.push([r.id,new Date(r.generatedAt).toLocaleString("it-IT"),r.profile,r.work,it2(r.z),it2(r.p),x.n,it2(x.quoted),it2(x.sc),it2(x.zc)].join(sep));
+  });
+  const blob=new Blob(["\ufeff"+lines.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="Correzioni_Z_"+r.profile+"_"+r.work.replace(/\s+/g,"_")+"_"+new Date(r.generatedAt).toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+  showMessage($("resultMsg"),"File CSV esportato con i dati della compilazione.","ok");
+ }catch(e){showMessage($("resultMsg"),"Errore durante l’esportazione CSV. Riprova o usa la stampa del browser.","error");}
+}
+
+function newCompilation(){
+ const hasData=draft.profile||draft.work||draft.quotes.some(q=>q.trim()!=="");
+ if(hasData&&!confirm("Vuoi salvare la compilazione corrente nello storico prima di iniziare una nuova compilazione? Premi OK per salvarla, Annulla per continuare senza salvare.")){
+  if(confirm("Continuare comunque con una nuova compilazione senza salvare?"))startNew();return;
+ }
+ if(hasData)saveHistory();
+ startNew();
+}
+
+function startNew(){
+ draft={profile:"",work:"",quotes:[""]};lastResult=null;
+ saveDraft();renderChoices();renderParams();renderQuotes();
+ $("resultSection").classList.add("hidden");
+ showMessage($("resultMsg"),"");
+ showMessage($("historyMsg"),"Nuova compilazione pronta. Le compilazioni precedenti restano nello storico.","ok");
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+function setupVoice(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){$("voiceBtn").disabled=true;$("voiceBtn").title="Riconoscimento vocale non disponibile";return;}
+ const rec=new SR();rec.lang="it-IT";rec.interimResults=false;rec.maxAlternatives=1;
+ $("voiceBtn").addEventListener("click",()=>{
+  try{
+   rec.start();showMessage($("quoteMsg"),"Dettatura attiva: pronuncia una o più quote, ad esempio “quattro virgola cinquanta”.");
+  }catch(e){showMessage($("quoteMsg"),"Impossibile avviare il microfono. Controlla i permessi del browser.","error");}
+ });
+ rec.onresult=e=>{
+  const text=e.results[0][0].transcript||"";
+  const matches=text.replace(/,/g,".").match(/\d+(?:\.\d+)?/g)||[];
+  if(!matches.length){showMessage($("quoteMsg"),"Nessun numero riconosciuto. Controlla e inserisci la quota manualmente.","error");return;}
+  matches.forEach(v=>draft.quotes.push(v));
+  renderQuotes();saveDraft();
+  showMessage($("quoteMsg"),"Quote riconosciute: "+matches.join(", ")+". Verifica e correggi i valori prima di generare il riepilogo.","ok");
+ };
+ rec.onerror=e=>showMessage($("quoteMsg"),"Dettatura non disponibile o non autorizzata: "+(e.error||"errore microfono")+". Puoi continuare con la tastiera.","error");
+}
+
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.profile){draft.profile=b.dataset.profile;renderChoices();renderParams();saveDraft();}
+ if(b.dataset.work){draft.work=b.dataset.work;renderChoices();renderParams();saveDraft();}
+ if(b.dataset.del!==undefined){draft.quotes.splice(Number(b.dataset.del),1);if(!draft.quotes.length)draft.quotes=[""];renderQuotes();saveDraft();}
+ if(b.dataset.open)openHistory(b.dataset.open);
+ if(b.dataset.delete)deleteHistory(b.dataset.delete);
+});
+
+document.addEventListener("input",e=>{
+ if(e.target.matches('#quoteRows input')){
+  draft.quotes[Number(e.target.dataset.i)]=e.target.value;
+  e.target.closest("tr").classList.remove("rowbad");saveDraft();
+ }
+});
+
+$("addQuote").addEventListener("click",()=>{draft.quotes.push("");renderQuotes();saveDraft();const inputs=document.querySelectorAll("#quoteRows input");if(inputs.length)inputs[inputs.length-1].focus();});
+$("clearQuotes").addEventListener("click",()=>{if(confirm("Rimuovere tutte le quote inserite?")){draft.quotes=[""];renderQuotes();saveDraft();showMessage($("quoteMsg"),"Tutte le quote sono state rimosse.","ok");}});
+$("generateBtn").addEventListener("click",generate);
+$("saveBtn").addEventListener("click",saveHistory);
+$("csvBtn").addEventListener("click",exportCsv);
+$("printBtn").addEventListener("click",()=>window.print());
+$("newBtn").addEventListener("click",newCompilation);
+$("refreshHistory").addEventListener("click",renderHistory);
+
+loadDraft();renderChoices();renderParams();renderQuotes();renderHistory();setupVoice();
+</script>
+</body>
+</html>
