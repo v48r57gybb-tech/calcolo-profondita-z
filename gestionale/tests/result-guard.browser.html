@@ -1,0 +1,34 @@
+<!doctype html><html lang="it"><meta charset="utf-8"><title>Test protezione risultati</title><h1>Test risultati residui</h1><pre id="report"></pre><section id="page"></section><script type="module">
+import { calc } from '../core.mjs';
+import { installResultGuard } from '../result-guard.mjs';
+const page=document.getElementById('page'),report=document.getElementById('report');
+const outcomes=[];
+function check(name,condition){outcomes.push({name,passed:Boolean(condition)});if(!condition)throw Error(name)}
+function setup(mode){
+  page.replaceChildren();
+  for(const [id,value] of [['diameter','10'],['vc','100'],['feed',mode==='tap'?'1,5':'0,05'],['teeth','4']]){
+    const input=document.createElement('input');input.id=id;input.value=value;page.append(input);
+  }
+  const select=document.createElement('select');select.id='family';
+  for(const value of ['A','B']){const o=document.createElement('option');o.textContent=value;select.append(o)}page.append(select);
+  const message=document.createElement('p');message.id='error';page.append(message);
+  const button=document.createElement('button');button.textContent='Calcola';
+  button.onclick=()=>{try{const r=calc(mode,page.querySelector('#diameter').value,page.querySelector('#vc').value,page.querySelector('#feed').value,page.querySelector('#teeth').value);let out=page.querySelector('#out');if(!out){out=document.createElement('pre');out.id='out';page.append(out)}out.textContent=JSON.stringify(r);message.textContent=''}catch(e){message.textContent=e.message}};page.append(button);
+  return button;
+}
+try{
+  check('Installazione idempotente',installResultGuard(page)===installResultGuard(page));
+  for(const mode of ['mill','drill','tap']){
+    const button=setup(mode);button.click();check(mode+': risultato valido',!!page.querySelector('#out'));
+    const input=page.querySelector('#diameter');input.value='12';input.dispatchEvent(new Event('input',{bubbles:true}));
+    check(mode+': input invalida senza cancellare dato',!page.querySelector('#out')&&input.value==='12'&&!!page.querySelector('#result-stale'));
+    button.click();check(mode+': ricalcolo unico',page.querySelectorAll('#out').length===1&&!page.querySelector('#result-stale'));
+    input.value='0';button.click();check(mode+': errore elimina risultato precedente',!page.querySelector('#out')&&!!page.querySelector('#error').textContent);
+    input.value='10';button.click();page.querySelector('#family').dispatchEvent(new Event('change',{bubbles:true}));
+    check(mode+': select invalida',!page.querySelector('#out'));
+  }
+  report.textContent=outcomes.length+' test superati\n'+outcomes.map(x=>'PASS '+x.name).join('\n');
+}catch(e){report.textContent='TEST FALLITO: '+e.message;}
+window.resultGuardTests=outcomes;
+window.resultGuardTestsDone=true;
+</script></html>
